@@ -11,7 +11,7 @@
 Feed it any app name. It fetches App Store & Play Store reviews,<br>
 classifies churn signals, and generates a shareable interactive report.
 
-[Get Started](#-get-started) · [How It Works](#-how-it-works) · [Use Cases](#-use-cases) · [Report Sections](#-whats-in-the-report)
+[Get Started](#get-started) · [How It Works](#how-it-works) · [Use Cases](#use-cases) · [Report Sections](#whats-in-the-report)
 
 </div>
 
