@@ -19,8 +19,8 @@
 ### 1. 프로젝트 클론
 
 ```bash
-git clone https://github.com/owenchoi-kr/airbridge-coreplan-gtm.git
-cd airbridge-coreplan-gtm
+git clone https://github.com/owenchoi-kr/subscription-review-analyzer.git
+cd subscription-review-analyzer
 ```
 
 ### 2. 의존성 설치
@@ -34,7 +34,7 @@ npm install
 ### 3. 스킬 등록
 
 스킬 파일이 `.claude/commands/diagnosing-subscription-churn.md`에 이미 있습니다.
-`airbridge-coreplan-gtm` 디렉토리 안에서 Claude Code를 실행하면 자동으로 인식됩니다.
+`subscription-review-analyzer` 디렉토리 안에서 Claude Code를 실행하면 자동으로 인식됩니다.
 
 ---
 
@@ -43,7 +43,7 @@ npm install
 ### 방법 1: 슬래시 커맨드
 
 ```bash
-cd airbridge-coreplan-gtm
+cd subscription-review-analyzer
 claude
 ```
 
@@ -153,5 +153,5 @@ node scripts/generate_report.js analysis.json --output report.html
 
 ## 문의
 
-- **GitHub**: [github.com/owenchoi-kr/airbridge-coreplan-gtm](https://github.com/owenchoi-kr/airbridge-coreplan-gtm)
+- **GitHub**: [github.com/owenchoi-kr/subscription-review-analyzer](https://github.com/owenchoi-kr/subscription-review-analyzer)
 - **LinkedIn**: [linkedin.com/in/owenchoi-kr](https://www.linkedin.com/in/owenchoi-kr/)
