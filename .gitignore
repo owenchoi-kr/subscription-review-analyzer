@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+
+# Generated outputs (can be regenerated)
+report_*.html
+reviews_*.json
+analysis_*.json

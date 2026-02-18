@@ -1,0 +1,15 @@
+{
+  "name": "subscription-review-analyzer",
+  "version": "1.0.0",
+  "description": "Claude Code skill that diagnoses subscription app churn from App Store & Play Store reviews",
+  "scripts": {
+    "search": "node scripts/fetch_reviews.js search",
+    "fetch": "node scripts/fetch_reviews.js fetch"
+  },
+  "dependencies": {
+    "app-store-scraper": "^0.19.0",
+    "google-play-scraper": "^9.1.1"
+  },
+  "keywords": ["subscription", "churn", "app-reviews", "claude-code", "diagnosis"],
+  "license": "MIT"
+}
