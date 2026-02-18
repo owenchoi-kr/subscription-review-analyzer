@@ -6,6 +6,94 @@ Feed it any subscription app name. It fetches reviews, classifies churn signals,
 
 ---
 
+## Who This Is For
+
+You don't need to be a developer. If you can install two things and type one sentence, you can run this.
+
+**This tool is for you if:**
+- You're a **PM or marketer** at a subscription app and want to understand why users churn
+- You're running **Paid UA** and wondering if your ad spend is actually driving subscriptions
+- You want a **data-backed churn diagnosis** without hiring an analyst or building dashboards
+- You need a **shareable report** to align your team around the top 3 issues to fix
+
+---
+
+## How to Use It (Non-Developer Guide)
+
+### Step 1: Install the prerequisites (one-time, ~5 min)
+
+You need two things installed on your computer:
+
+**a) Node.js** — the runtime that powers the scripts
+- Go to [nodejs.org](https://nodejs.org) and download the LTS version
+- Install it like any other app
+- Verify: open Terminal (Mac) or Command Prompt (Windows) and type `node -v` — you should see a version number
+
+**b) Claude Code** — the AI that runs the analysis
+- Go to [claude.ai/claude-code](https://claude.ai/claude-code) and follow the install instructions
+- Verify: type `claude` in your terminal — it should open
+
+### Step 2: Download this project (one-time, ~1 min)
+
+Open your terminal and paste these three lines:
+
+```bash
+git clone https://github.com/owenchoi-kr/subscription-review-analyzer.git
+cd subscription-review-analyzer
+npm install
+```
+
+That's it. You won't need to do this again.
+
+### Step 3: Run the analysis (~5 min)
+
+From inside the `subscription-review-analyzer` folder, type:
+
+```bash
+claude
+```
+
+Then just tell it what you want in plain English:
+
+```
+"Analyze Calm app reviews and tell me why users are churning."
+```
+
+```
+"Diagnose Nightly's subscription churn from App Store reviews."
+```
+
+```
+"Compare Headspace vs Calm — who has worse churn and why?"
+```
+
+Claude will ask you a few quick questions (multiple choice), then do everything automatically:
+1. Find and fetch reviews from both App Store and Google Play
+2. Read every review and classify churn signals
+3. Identify the top 3 reasons users leave
+4. Generate a visual HTML report
+
+### Step 4: View and share your report
+
+The report opens in your browser automatically. It's a single HTML file — no server, no login, no expiration.
+
+**To share it:**
+- **Slack / Email / Notion** → just attach the `.html` file
+- **LinkedIn / public link** → Claude can deploy it as a URL for you (it'll ask)
+
+---
+
+## Example Use Cases
+
+| Role | What to ask | What you get |
+|------|------------|--------------|
+| **Growth PM** | "Why is our trial-to-paid below 10%?" | Top 3 conversion blockers + A/B test designs |
+| **UA Marketer** | "Are my paid users actually subscribing?" | Channel-to-subscription funnel diagnosis |
+| **Product Manager** | "What should we fix first to reduce churn?" | Prioritized issues by severity x frequency |
+| **Founder** | "Analyze our competitor's weak spots" | Competitor churn report you can use for positioning |
+
+---
+
 ## What It Does
 
 ```
