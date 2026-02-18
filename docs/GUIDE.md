@@ -1,157 +1,157 @@
-# Subscription Churn Diagnosis Skill — 사용 가이드
+# Subscription Churn Diagnosis Skill — User Guide
 
-> 앱 스토어 리뷰를 분석해서 구독 이탈 원인을 진단하고, 공유 가능한 HTML 리포트를 생성하는 Claude Code 스킬입니다.
-
----
-
-## 준비물
-
-| 항목 | 설명 |
-|------|------|
-| **Claude Code** | [claude.ai/claude-code](https://claude.ai/claude-code) 에서 설치 |
-| **Node.js** | v18 이상 (`node -v`로 확인) |
-| **분석할 앱** | App Store 또는 Play Store에 올라와 있는 구독 앱 이름 |
+> A Claude Code skill that analyzes App Store & Play Store reviews to diagnose subscription churn and generate a shareable interactive HTML report.
 
 ---
 
-## 설치 (1분)
+## Prerequisites
 
-### 1. 프로젝트 클론
+| Item | Description |
+|------|-------------|
+| **Claude Code** | Install from [claude.ai/claude-code](https://claude.ai/claude-code) |
+| **Node.js** | v18 or higher (check with `node -v`) |
+| **Target App** | Any subscription app listed on App Store or Play Store |
+
+---
+
+## Setup (1 min)
+
+### 1. Clone the repo
 
 ```bash
 git clone https://github.com/owenchoi-kr/subscription-review-analyzer.git
 cd subscription-review-analyzer
 ```
 
-### 2. 의존성 설치
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-> `google-play-scraper`와 `app-store-scraper`가 자동으로 설치됩니다.
+> This installs `google-play-scraper` and `app-store-scraper` automatically.
 
-### 3. 스킬 등록
+### 3. Skill registration
 
-스킬 파일이 `.claude/commands/diagnosing-subscription-churn.md`에 이미 있습니다.
-`subscription-review-analyzer` 디렉토리 안에서 Claude Code를 실행하면 자동으로 인식됩니다.
+The skill file is already at `.claude/commands/diagnosing-subscription-churn.md`.
+Just open Claude Code inside the `subscription-review-analyzer` directory — it picks up the skill automatically.
 
 ---
 
-## 사용법
+## Usage
 
-### 방법 1: 슬래시 커맨드
+### Option 1: Slash command
 
 ```bash
 cd subscription-review-analyzer
 claude
 ```
 
-Claude Code가 열리면:
+Once Claude Code opens:
 
 ```
 /diagnosing-subscription-churn
 ```
 
-### 방법 2: 자연어
+### Option 2: Natural language
 
-Claude Code에서 그냥 말하면 됩니다:
-
-```
-"Calm 앱 리뷰 분석해줘. 왜 유저들이 구독 이탈하는지 진단해줘."
-```
+Just ask Claude Code directly:
 
 ```
-"Headspace vs Calm 비교 분석해줘."
+"Analyze Calm app reviews — why are users churning?"
 ```
 
 ```
-"Nightly 앱 구독 전환율이 왜 낮은지 리뷰로 진단해줘."
+"Compare Headspace vs Calm churn patterns."
 ```
 
----
-
-## 진행 플로우
-
-스킬이 실행되면 아래 순서대로 자동 진행됩니다:
-
 ```
-Step 0  질문 4개로 분석 범위 확인
-   ↓
-Step 1  앱 스토어 리뷰 자동 수집 (최근 6개월, 전체 별점)
-   ↓
-Step 2  8가지 이탈 카테고리로 리뷰 분류
-   ↓
-Step 3  가중 점수 기반 우선순위 산정 (Top 3)
-   ↓
-Step 4  Top 3 이슈 근본원인 분석 + 실험 설계
-   ↓
-Step 5  인터랙티브 HTML 리포트 생성
-   ↓
-Step 6  리포트 열기 & 공유 옵션 제공
-   ↓
-Step 7  다음 액션 제안
+"Why is Nightly's trial-to-paid conversion so low? Diagnose from reviews."
 ```
 
 ---
 
-## 리포트 공유하기
+## How It Works
 
-### 옵션 A: HTML 파일 그대로 공유 (가장 쉬움)
+The skill runs through these steps automatically:
 
-생성된 `.html` 파일을 Slack, 이메일, 노션에 첨부하면 됩니다.
-단일 파일이라 의존성 없이 아무 브라우저에서 열립니다.
+```
+Step 0  4 quick questions to scope the analysis
+   ↓
+Step 1  Fetch reviews from App Store & Play Store (last 6 months, all ratings)
+   ↓
+Step 2  Classify reviews into 8 churn signal categories
+   ↓
+Step 3  Rank by weighted score (count × severity) → Top 3
+   ↓
+Step 4  Root cause analysis + experiment design for Top 3
+   ↓
+Step 5  Generate interactive HTML report
+   ↓
+Step 6  Open report & sharing options
+   ↓
+Step 7  Suggest next actions
+```
 
-### 옵션 B: URL로 배포 (링크드인 공유용)
+---
 
-Claude Code가 surge.sh 배포를 안내합니다:
+## Sharing Your Report
+
+### Option A: Share the HTML file (easiest)
+
+Send the generated `.html` file via Slack, email, or Notion.
+It's a single self-contained file — opens in any browser with zero dependencies.
+
+### Option B: Publish as a URL (for LinkedIn posts)
+
+Claude Code walks you through deploying with surge.sh:
 
 ```bash
 npx surge ./report --domain my-app-churn-report.surge.sh
 ```
 
-처음 한 번만 이메일로 가입하면 이후 자동 배포됩니다.
-배포 후 `https://my-app-churn-report.surge.sh` 링크를 LinkedIn 포스트에 바로 사용하세요.
+First time only: enter your email to create a free account. After that, deploys are automatic.
+Share `https://my-app-churn-report.surge.sh` directly in your LinkedIn posts.
 
 ---
 
-## 리포트 구성
+## Report Sections
 
-| 섹션 | 설명 |
-|------|------|
-| **인트로** | 분석한 리뷰 수와 이탈 신호 비율 |
-| **Dot Grid** | 전체 리뷰를 점으로 시각화, 이탈 신호는 빨간색 |
-| **Bar Chart** | 8가지 이탈 카테고리별 가중 점수 (클릭하면 원문 펼쳐짐) |
-| **Deep Dive ×3** | 상위 3개 이슈 각각 다른 레이아웃으로 분석 |
-| **Experiments** | A/B 테스트 설계 로드맵 |
-| **CTA** | Airbridge Core Plan 소개 + 얼리 액세스 |
+| Section | Description |
+|---------|-------------|
+| **Intro** | Total reviews analyzed and churn signal ratio |
+| **Dot Grid** | Every review visualized as a dot — churn signals in red |
+| **Bar Chart** | 8 churn categories ranked by weighted score (click to expand quotes) |
+| **Deep Dive ×3** | Top 3 issues, each with a unique layout |
+| **Experiments** | A/B test roadmap with hypotheses, metrics, and guardrails |
+| **CTA** | Airbridge Core Plan intro + early access offer |
 
 ---
 
-## 자주 묻는 질문
+## FAQ
 
-### Q: 리뷰가 너무 적으면?
+### Q: What if there aren't enough reviews?
 
-최소 30개 이상 확보를 추천합니다. 리뷰가 적은 앱은 `--months 12`로 기간을 늘리거나, 경쟁사 리뷰를 같이 분석하세요.
+We recommend at least 30 reviews for meaningful patterns. For apps with fewer reviews, try `--months 12` to extend the time range or include a competitor for comparison.
 
-### Q: 한국어 리포트도 되나요?
+### Q: Can I generate a Korean report?
 
-네. `--lang ko` 플래그로 한국어 리포트를 생성할 수 있습니다. 분석 JSON에 한국어 번역을 넣으면 됩니다.
+Yes. Use the `--lang ko` flag when generating the report. You'll need Korean translations in your analysis JSON.
 
-### Q: 경쟁사 비교는 어떻게?
+### Q: How does competitor comparison work?
 
-Step 0에서 "Compare vs competitor"를 선택하면 두 앱의 리뷰를 나란히 분석합니다.
+Select "Compare vs competitor" in Step 0. The skill fetches and analyzes reviews from both apps side by side.
 
-### Q: 리포트를 수정하고 싶으면?
+### Q: Can I edit the report after generation?
 
-`analysis.json` 파일을 수정한 뒤 리포트를 다시 생성하면 됩니다:
+Yes. Modify your `analysis.json` file and regenerate:
 ```bash
 node scripts/generate_report.js analysis.json --output report.html
 ```
 
 ---
 
-## 문의
+## Contact
 
 - **GitHub**: [github.com/owenchoi-kr/subscription-review-analyzer](https://github.com/owenchoi-kr/subscription-review-analyzer)
 - **LinkedIn**: [linkedin.com/in/owenchoi-kr](https://www.linkedin.com/in/owenchoi-kr/)
