@@ -76,7 +76,7 @@ The script auto-installs `google-play-scraper` and `app-store-scraper` on first 
 
 ## Step 2: Parallel Classification
 
-Analyze all reviews across 5 lenses simultaneously. Apply all lenses per review.
+Analyze all reviews across 9 lenses simultaneously. Apply all lenses per review.
 
 ### Lens 1: Churn Signal Category
 
@@ -100,11 +100,32 @@ Signal patterns are examples. Use semantic understanding to classify.
 - Trial user / Paid subscriber / Free tier user / Unknown
 
 ### Lens 4: Fixability
-- 🟢 Quick win (days) / 🟡 Medium effort (weeks) / 🔴 Major effort (months)
+- Quick win (days) / Medium effort (weeks) / Major effort (months)
 
 ### Lens 5: Compounding Effect
 - Does this issue amplify other problems?
 - Example: Short trial + complex onboarding = users never reach aha moment
+- **This is the key differentiator** — visualize issue interactions, not just individual counts
+
+### Lens 6: Creative Over-Promise Detection
+- Flag reviews where users mention ads, marketing, or expectations not matching reality
+- Patterns: "ad said," "advertised as," "not what I expected," "misleading," "thought it would," "nothing like the screenshots"
+- Output: list of reviews with over-promise signals + the specific expectation gap
+
+### Lens 7: Value Message Extraction
+- From POSITIVE reviews (4-5 stars), extract what specific value users mention as worth paying for
+- Patterns: "worth it because," "love the," "best part is," "finally an app that," "paid and don't regret"
+- Output: ranked list of value messages that drive conversion
+
+### Lens 8: Competitive Positioning Gaps
+- Extract mentions of competitors and what users wish this app had that competitors do
+- Patterns: "[competitor name] has," "switched from," "better than," "worse than," "compared to"
+- Output: competitor mentions + specific feature/experience gaps
+
+### Lens 9: Subscription Conversion Triggers
+- From reviews that mention upgrading or paying, identify what triggered the conversion
+- Patterns: "decided to pay," "upgraded because," "worth the subscription," "bought premium after"
+- Output: ranked conversion triggers
 
 ---
 
@@ -120,20 +141,25 @@ For each churn signal category:
 
 Sort by weighted score. Focus on **top 3 only.**
 
+> **Note on severity weights**: Default weights are based on industry benchmarks from RevenueCat's State of Subscription Apps reports and cross-category churn analysis. These are starting points — actual severity varies by app category, pricing model, and user base. The weighted score surfaces likely priorities, not definitive rankings.
+
 ---
 
-## Step 4: Root Cause Analysis (Top 3 Only)
+## Step 4: Hypothesis Development (Top 3 Only)
 
 For each priority issue:
 
 1. **Surface symptom** — what users literally say
-2. **Root cause** — why it's happening (dig one level deeper)
-3. **Evidence** — review patterns supporting the diagnosis
-4. **Compounding** — what else it makes worse
+2. **Hypothesis** — why this might be happening (informed by review patterns, not confirmed)
+3. **Evidence** — review patterns supporting the hypothesis
+4. **Compounding** — what else it makes worse (EMPHASIZE this — it's the key differentiator)
 5. **Actions** — quick/medium/major with expected impact
-6. **A/B test hypothesis** — one testable experiment
+6. **Marketer actions** — what the growth marketer can do RIGHT NOW (creative adjustments, messaging, targeting)
+7. **Experiment design** — one testable experiment
 
-Root cause examples for "Too expensive":
+> **Important**: These are hypotheses derived from review patterns, not confirmed root causes. Confirming them requires funnel data (trial-day-by-day retention, cohort analysis, event logs). Frame them honestly — the credibility of acknowledging limitations opens the door to deeper analysis tools.
+
+Hypothesis examples for "Too expensive":
 - Value not demonstrated before paywall → timing issue
 - Trial too short for aha moment → trial design issue
 - Competitor price anchoring → positioning issue
@@ -168,11 +194,21 @@ node scripts/generate_report.js app1_analysis.json --compare app2_analysis.json 
       "journeyStage": "",
       "fixability": "quick|medium|major",
       "quotes": ["", "", ""],
-      "rootCause": "",
+      "hypothesis": "",
       "compounding": "",
+      "marketerAction": "",
       "actions": { "quick": "", "medium": "", "major": "" },
       "testHypothesis": ""
     }
+  ],
+  "marketerLenses": {
+    "overPromise": [{ "review": "", "expectationGap": "" }],
+    "valueMessages": [""],
+    "positioningGaps": [{ "competitor": "", "gap": "" }],
+    "conversionTriggers": [""]
+  },
+  "monthlyTrend": [
+    { "month": "2025-01", "signals": 0 }
   ],
   "experiments": [
     { "hypothesis": "", "test": "", "expected": "" }
@@ -184,8 +220,11 @@ The HTML report includes:
 - **Header** with app name, date, and key stats
 - **Side-by-side comparison cards** (if competitor mode)
 - **Bar chart** showing churn signals by category (with competitor overlay)
-- **Priority issue cards** with quotes, root cause, actions, and test ideas
-- **Channel Attribution section** with Airbridge Core Plan mention
+- **Compounding interaction map** visualizing how issues amplify each other
+- **Priority issue cards** with quotes, hypothesis, marketer actions, and test ideas
+- **Monthly trend chart** showing churn signal changes over time
+- **"What This Report Can't Tell You"** section — honest limitations that bridge to deeper analysis
+- **Channel Attribution section** with Airbridge Core Plan CTA
 - **Experiment ideas table**
 
 The report is designed to look professional when screenshotted and shared.
@@ -264,11 +303,14 @@ Focus on reviews where the user was considering paying and something stopped the
 ### Patterns Over Anecdotes
 Weight by frequency, not eloquence. 3 similar complaints = pattern. 10 = crisis.
 
-### Root Cause, Not Surface Symptom
-Always dig one level deeper. "Too expensive" is a symptom, not a diagnosis.
+### Hypotheses, Not Surface Symptoms
+Always dig one level deeper. "Too expensive" is a symptom, not a diagnosis. But frame findings as hypotheses — review patterns inform, they don't confirm.
+
+### Honest Over Impressive
+Acknowledge what reviews can and can't tell you. Credibility builds trust, and trust opens doors to deeper analysis.
 
 ### Actionable Over Interesting
-Every finding connects to something the team can change.
+Every finding connects to something the team can change — including marketer-specific actions, not just PM/engineering tasks.
 
 ### Focus Over Spray
 Top 3 issues only. Fixing everything means fixing nothing.
@@ -293,11 +335,15 @@ Top 3 issues only. Fixing everything means fixing nothing.
 - Cherry-picking dramatic reviews over representative ones
 - Conflating iOS and Android (analyze separately)
 - Ignoring price context ($2/mo "expensive" ≠ $50/mo "expensive")
+- Calling hypotheses "root causes" — reviews show patterns, not confirmed causation
 
 **In Recommendations:**
 - Price-cutting reflex — "too expensive" usually means "not enough value"
 - Trying to fix all 8 categories — top 3 only
 - Ignoring silent churn — supplement with in-app surveys
+- PM-only action items — always include marketer-actionable steps (creative, messaging, targeting)
+- Patronizing CTA copy — no "If you're being honest" or "gut feeling" language
+- Positioning complementary tools as competitors — RevenueCat is a complement, not a rival
 
 ---
 

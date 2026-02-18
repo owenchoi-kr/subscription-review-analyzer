@@ -12,6 +12,10 @@ function getFlag(flag, defaultVal) {
   return args[idx + 1];
 }
 
+function hasFlag(flag) {
+  return args.includes(flag);
+}
+
 if (!inputFile) {
   console.log(`
 Usage:
@@ -21,6 +25,7 @@ Options:
   --output <file>      Output HTML filename (default: report.html)
   --lang <en|ko>       Language (default: en)
   --linkedin <url>     LinkedIn profile URL for footer CTA
+  --waitlist            Enable waitlist box in CTA
 `);
   process.exit(1);
 }
@@ -28,7 +33,7 @@ Options:
 const outputFile = getFlag('--output', 'report.html');
 const lang = getFlag('--lang', 'en');
 const linkedinUrl = getFlag('--linkedin', null);
-const waitlistUrl = getFlag('--waitlist', null);
+const waitlistEnabled = hasFlag('--waitlist');
 
 const analysis = JSON.parse(fs.readFileSync(path.resolve(inputFile), 'utf-8'));
 
@@ -36,22 +41,49 @@ function esc(str) {
   return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// --- Backwards compatibility: support both rootCause and hypothesis fields ---
+function getCatHypothesis(cat) {
+  return cat.hypothesis || cat.rootCause || '';
+}
+
+// --- Default marketer actions by category name ---
+function getDefaultMarketerAction(catName) {
+  const defaults = {
+    'Paywall Friction': 'Adjust ad creative to set realistic expectations about free vs paid features',
+    'Technical Issues': 'Pause campaigns targeting platforms with highest crash rates until fixed',
+    'Value Perception Gap': 'Test new creative highlighting the specific value props users mention in positive reviews',
+    'Cancellation Difficulty': 'Update landing pages to clearly explain cancellation process, reducing post-install distrust',
+    'Feature Gap': 'Align ad messaging with actually available features to reduce expectation mismatch',
+    'Pricing Objection': 'Test value-focused creative that frames price relative to outcomes, not features',
+    'Trial Dissatisfaction': 'Set clear trial expectations in ad creative — duration, what happens after, how to cancel',
+    'Onboarding Confusion': 'Ensure ad-to-app experience continuity — the first screen should match the ad promise',
+  };
+  // Fuzzy match: check if catName contains any key
+  for (const [key, val] of Object.entries(defaults)) {
+    if (catName.toLowerCase().includes(key.toLowerCase().split(' ')[0])) {
+      return val;
+    }
+  }
+  return 'Review acquisition channel performance for users who mention this issue in reviews';
+}
+
 // --- i18n ---
 const i18n = {
   en: {
-    introLine: (name, n) => `We read <span class="num" data-target="${n}">0</span> reviews of ${esc(name)}.`,
-    signalLine: (rate, n) => `Of those, <span class="accent">${rate}%</span> contained churn signals — <span class="accent">${n}</span> reviews where users told us exactly why they're leaving.`,
+    introLine: (name, n) => `Your users left <span class="num" data-target="${n}">0</span> reviews of ${esc(name)}.`,
+    signalLine: (rate, n) => `<span class="accent">${n}</span> of them contain churn signals — <span class="accent">${rate}%</span> of reviews where users said exactly why they're leaving.`,
     dotCaption: 'Each dot is one review. The red ones are churn signals.',
-    patternLine: (n) => `We classified those signals into <span class="accent">${n}</span> patterns.`,
+    patternLine: (n) => `They fall into <span class="accent">${n}</span> patterns.`,
     patternHint: 'Click a bar to read the actual reviews.',
-    deepdiveIntro: "Here's what we found when we dug into the top 3.",
+    deepdiveIntro: "Here's what the top 3 reveal.",
     issueNum: (n) => `Issue #${n}`,
     mentions: 'mentions',
     severity: 'Severity',
     journeyStage: 'Journey Stage',
-    rootCause: 'Why this happens',
+    hypothesis: 'Hypothesis',
     compounding: 'How it compounds',
     whatToDo: 'What to do about it',
+    marketerActions: 'What you can do as a marketer',
     quickWin: 'Quick win',
     mediumTerm: 'Medium-term',
     longTerm: 'Long-term',
@@ -66,17 +98,26 @@ const i18n = {
     expSample: 'Sample Size',
     expExpected: 'Expected Outcome',
     expPrereq: 'Prerequisite',
-    ctaTitle: 'The most expensive question this report can\'t answer',
-    ctaLine1: (top1) => `Now you know the top churn drivers — <strong>${top1}</strong> and two more. You have a clear list of what to fix and where in the funnel users break off.`,
-    ctaLine2: 'But none of this tells you the one thing that\'s actually burning money right now: <strong>is the ad spend you\'re running actually turning into subscribers?</strong>',
-    ctaLine3: 'If you\'re being honest, you probably know the answer looks something like this: subscription numbers in RevenueCat, CPI calculations in a Google Sheet, and everything in between is a gut feeling.',
-    ctaLine4: 'The churn issues above become 10x more urgent once you realize you can\'t see the full picture — from ad click to trial start to subscription renewal — in one place. You\'re fixing leaks in a funnel you can\'t actually see end-to-end.',
-    ctaLine5: (brand) => `<strong>${brand}</strong> answers one question: <em>"Is my Paid UA driving subscriptions?"</em> One funnel, from ad click to renewal, across Meta, Google, TikTok, and Apple Search Ads. Self-serve setup in under an hour, starting at $0/mo.`,
+    severityNote: 'Severity weights are industry baselines from subscription app benchmarks. Actual severity varies by app.',
+    limitationsTitle: 'What this report can\'t tell you',
+    limitationsIntro: 'This analysis reads what your users wrote publicly. It surfaces patterns and generates hypotheses. But reviews don\'t contain:',
+    limitationsItems: [
+      { bold: 'Which channels bring users who churn most', detail: 'a user who churns from a Meta ad vs organic search may have completely different expectations' },
+      { bold: 'Where in the funnel they actually drop off', detail: '"paywall friction" from a review doesn\'t tell you if it\'s day 1 or day 7' },
+      { bold: 'Whether fixes are working', detail: 'you need before/after cohort data, not before/after reviews' },
+    ],
+    limitationsOutro: 'These hypotheses are starting points. Confirming them requires funnel data — trial-day retention curves, channel-by-cohort conversion rates, event-level behavior logs.',
+    compoundingMapTitle: 'How these issues amplify each other',
+    trendTitle: 'Churn Signal Trend',
+    ctaTitle: 'This report shows why users leave. The next question is: which users?',
+    ctaLine1: 'Not all churn is equal. A user from a $3 Meta install who churns in week 1 is a different problem than an organic user who cancels after 6 months.',
+    ctaLine2: 'Splitting these patterns by acquisition channel turns hypotheses into decisions — which campaigns to scale, which to pause, which audiences to rethink.',
+    ctaLine3: 'That\'s what Airbridge Core Plan does.',
     ctaLink: 'Learn more about Core Plan',
-    waitlistTitle: 'Early access offer',
-    waitlistLine1: 'Core Plan is launching soon. Join the waitlist today, and you\'ll start with <strong>90,000 Attributed Installs free</strong> over your first 3 months.',
-    waitlistLine2: 'For context: the standard free tier covers 15,000 installs per year. This is <strong>6x that</strong>, concentrated into your first 90 days — enough to measure every paid install your app gets, at zero cost.',
-    waitlistLine3: 'This offer is only available to early access signups.',
+    waitlistTitle: 'Early access',
+    waitlistLine1: 'Core Plan is launching soon. Join the waitlist to start with <strong>90,000 Attributed Installs free</strong> over your first 3 months.',
+    waitlistLine2: 'The standard free tier covers 15,000 installs per year. This is <strong>6x that</strong>, concentrated into your first 90 days.',
+    waitlistLine3: 'Available to early access signups only.',
     waitlistBtn: 'Join the waitlist',
     linkedinLine: 'Want to discuss this analysis further?',
     linkedinCta: "Let's connect on LinkedIn",
@@ -89,19 +130,20 @@ const i18n = {
     dd3Got: 'What users experienced',
   },
   ko: {
-    introLine: (name, n) => `${esc(name)}의 리뷰 <span class="num" data-target="${n}">0</span>개를 읽었습니다.`,
-    signalLine: (rate, n) => `그 중 <span class="accent">${rate}%</span>에서 이탈 신호가 나왔습니다 — 사용자가 왜 떠나는지 직접 말해준 리뷰 <span class="accent">${n}</span>건.`,
+    introLine: (name, n) => `${esc(name)}에 사용자들이 <span class="num" data-target="${n}">0</span>개의 리뷰를 남겼습니다.`,
+    signalLine: (rate, n) => `그 중 <span class="accent">${n}</span>건에 이탈 신호가 있습니다 — 전체의 <span class="accent">${rate}%</span>.`,
     dotCaption: '각 점은 리뷰 1건입니다. 빨간 점이 이탈 신호입니다.',
-    patternLine: (n) => `이탈 신호를 분류하니 <span class="accent">${n}</span>가지 패턴이 보였습니다.`,
+    patternLine: (n) => `이탈 신호를 분류하면 <span class="accent">${n}</span>가지 패턴입니다.`,
     patternHint: '바를 클릭하면 실제 리뷰를 볼 수 있습니다.',
-    deepdiveIntro: '상위 3개 이슈를 파고들었습니다.',
+    deepdiveIntro: '상위 3개 이슈가 드러내는 것.',
     issueNum: (n) => `이슈 #${n}`,
     mentions: '건',
     severity: '심각도',
     journeyStage: '여정 단계',
-    rootCause: '왜 이런 일이 생기는가',
+    hypothesis: '가설',
     compounding: '어떻게 악화되는가',
     whatToDo: '무엇을 해야 하는가',
+    marketerActions: '마케터로서 할 수 있는 것',
     quickWin: '빠른 개선',
     mediumTerm: '중기 과제',
     longTerm: '장기 과제',
@@ -116,17 +158,26 @@ const i18n = {
     expSample: '표본 크기',
     expExpected: '기대 결과',
     expPrereq: '선행 조건',
-    ctaTitle: '이 리포트가 답하지 못하는, 가장 비싼 질문',
-    ctaLine1: (top1) => `이제 핵심 이탈 원인을 알았습니다 — <strong>${top1}</strong> 외 2가지. 무엇을 고쳐야 하고, 퍼널 어디서 이탈하는지도 파악했습니다.`,
-    ctaLine2: '하지만 이 중 어떤 것도, 지금 돈이 타고 있는 진짜 질문에는 답하지 못합니다: <strong>내가 쓰고 있는 광고비가 실제로 구독으로 이어지고 있는 건가?</strong>',
-    ctaLine3: '솔직히, 지금 이 질문에 대한 답은 이렇게 생겼을 겁니다 — 구독 숫자는 RevenueCat에서, CPI 계산은 Google Sheets에서, 그 사이는 전부 감.',
-    ctaLine4: '위에서 분석한 이탈 이슈들은, 광고 클릭부터 트라이얼 시작, 구독 갱신까지의 전체 퍼널을 한 곳에서 볼 수 없다는 걸 깨닫는 순간 10배 더 긴급해집니다. 끝에서 끝까지 보이지 않는 퍼널의 구멍을 막고 있는 셈이니까요.',
-    ctaLine5: (brand) => `<strong>${brand}</strong>은 하나의 질문에 답합니다: <em>"내 Paid UA가 구독을 만들고 있는가?"</em> 광고 클릭부터 구독 갱신까지, Meta·Google·TikTok·Apple Search Ads를 하나의 퍼널로. 1시간 내 셀프서브 설정, $0/월부터.`,
+    severityNote: '심각도 가중치는 구독 앱 벤치마크 기준입니다. 실제 심각도는 앱마다 다릅니다.',
+    limitationsTitle: '이 리포트가 알려주지 못하는 것',
+    limitationsIntro: '이 분석은 사용자들이 공개적으로 쓴 내용을 읽습니다. 패턴을 발견하고 가설을 만듭니다. 하지만 리뷰에는 다음이 없습니다:',
+    limitationsItems: [
+      { bold: '어떤 채널의 사용자가 가장 많이 이탈하는지', detail: 'Meta 광고에서 온 사용자와 자연 검색에서 온 사용자의 기대치는 완전히 다를 수 있습니다' },
+      { bold: '퍼널 어디서 실제로 이탈하는지', detail: '리뷰의 "페이월 마찰"이 1일차인지 7일차인지 알 수 없습니다' },
+      { bold: '수정이 효과가 있는지', detail: '전후 리뷰가 아닌 전후 코호트 데이터가 필요합니다' },
+    ],
+    limitationsOutro: '이 가설들은 시작점입니다. 확인하려면 퍼널 데이터가 필요합니다 — 트라이얼일 리텐션 곡선, 채널별 코호트 전환율, 이벤트 수준 행동 로그.',
+    compoundingMapTitle: '이슈들이 서로 어떻게 증폭하는가',
+    trendTitle: '이탈 신호 추이',
+    ctaTitle: '이 리포트는 왜 떠나는지를 보여줍니다. 다음 질문은: 어떤 사용자인가?',
+    ctaLine1: '모든 이탈이 같지 않습니다. 1주차에 이탈하는 $3 Meta 설치 사용자와 6개월 후 해지하는 오가닉 사용자는 완전히 다른 문제입니다.',
+    ctaLine2: '이 패턴들을 유입 채널별로 나누면 가설이 의사결정이 됩니다 — 어떤 캠페인을 확장하고, 어떤 것을 중단하고, 어떤 오디언스를 재고할지.',
+    ctaLine3: '그것이 Airbridge Core Plan이 하는 일입니다.',
     ctaLink: 'Core Plan 자세히 보기',
-    waitlistTitle: '얼리 액세스 오퍼',
-    waitlistLine1: 'Core Plan이 곧 런칭됩니다. 지금 웨이팅리스트에 등록하시면, 첫 3개월간 <strong>90,000 Attributed Installs를 무료</strong>로 제공합니다.',
-    waitlistLine2: '참고로, 일반 무료 티어는 연간 15,000건입니다. 이건 그 <strong>6배</strong>를 첫 90일에 집중 제공하는 것 — 앱의 유료 설치를 전부 측정하기에 충분한 양입니다.',
-    waitlistLine3: '이 오퍼는 얼리 액세스 등록자에게만 제공됩니다.',
+    waitlistTitle: '얼리 액세스',
+    waitlistLine1: 'Core Plan이 곧 런칭됩니다. 웨이팅리스트에 등록하면 첫 3개월간 <strong>90,000 Attributed Installs를 무료</strong>로 제공합니다.',
+    waitlistLine2: '일반 무료 티어는 연간 15,000건입니다. 이건 그 <strong>6배</strong>를 첫 90일에 집중 제공합니다.',
+    waitlistLine3: '얼리 액세스 등록자에게만 제공됩니다.',
     waitlistBtn: '웨이팅리스트 등록하기',
     linkedinLine: '이 분석에 대해 더 이야기하고 싶으신가요?',
     linkedinCta: 'LinkedIn에서 대화해요',
@@ -189,20 +240,29 @@ function methodologyHTML() {
           <li>Scraped reviews from App Store (iOS) and Google Play Store (US market).</li>
           <li>Collected ${analysis.totalReviews} reviews across both platforms.</li>
           <li>Classified each review into 8 predefined churn signal categories.</li>
-          <li>Assigned severity scores (1–5) to each category.</li>
-          <li>Calculated weighted score = mentions × severity.</li>
-          <li>Performed root cause analysis on the top 3 categories by score.</li>
+          <li>Assigned severity scores (1-5) to each category.</li>
+          <li>Calculated weighted score = mentions x severity.</li>
+          <li>Performed hypothesis analysis on the top 3 categories by score.</li>
         </ol>
       </div>
     </details>`;
   }
+
+  // Support both old format (array of strings) and new format (array of objects)
+  const stepsHtml = Array.isArray(m.steps)
+    ? m.steps.map(s => {
+        if (typeof s === 'string') return `<li>${esc(s)}</li>`;
+        return `<li><strong>${esc(s.label)}</strong> — ${esc(s.detail)}</li>`;
+      }).join('\n        ')
+    : '';
+
   return `
   <details class="methodology">
     <summary>${esc(m.title || t.methodologyTitle)}</summary>
     <div class="methodology-body">
-      <p>${esc(m.description)}</p>
+      ${m.description ? `<p>${esc(m.description)}</p>` : ''}
       <ol>
-        ${m.steps.map(s => `<li><strong>${esc(s.label)}</strong> — ${esc(s.detail)}</li>`).join('\n        ')}
+        ${stepsHtml}
       </ol>
     </div>
   </details>`;
@@ -229,8 +289,23 @@ function barChart() {
   }).join('');
 }
 
+// --- Marketer Actions Block ---
+function marketerActionsBlock(cat) {
+  const actions = cat.marketerActions || [getDefaultMarketerAction(cat.name)];
+  const actionsList = Array.isArray(actions) ? actions : [actions];
+  return `
+    <div class="dd-marketer-actions">
+      <h3>${t.marketerActions}</h3>
+      ${actionsList.map(a => `
+      <div class="marketer-action-row">
+        <span class="marketer-action-text">${esc(a)}</span>
+      </div>`).join('')}
+    </div>`;
+}
+
 // --- Deep Dive #1: Big Quotes Layout ---
 function deepDive1(cat, idx) {
+  const hypothesisText = getCatHypothesis(cat);
   return `
   <section class="section deepdive">
     <div class="dd-label">${t.issueNum(idx + 1)}</div>
@@ -245,8 +320,8 @@ function deepDive1(cat, idx) {
     <p class="dd-punchline">${t.dd1Punch(cat.name)}</p>
 
     <div class="dd-analysis">
-      <h3>${t.rootCause}</h3>
-      <p>${esc(cat.rootCause)}</p>
+      <h3>${t.hypothesis}</h3>
+      <p>${esc(hypothesisText)}</p>
     </div>
     <div class="dd-analysis">
       <h3>${t.compounding}</h3>
@@ -254,12 +329,14 @@ function deepDive1(cat, idx) {
     </div>
 
     ${actionsBlock(cat)}
+    ${marketerActionsBlock(cat)}
   </section>`;
 }
 
 // --- Deep Dive #2: Journey Timeline Layout ---
 function deepDive2(cat, idx) {
   const steps = t.dd2Steps;
+  const hypothesisText = getCatHypothesis(cat);
   return `
   <section class="section deepdive">
     <div class="dd-label">${t.issueNum(idx + 1)}</div>
@@ -284,8 +361,8 @@ function deepDive2(cat, idx) {
     </div>
 
     <div class="dd-analysis">
-      <h3>${t.rootCause}</h3>
-      <p>${esc(cat.rootCause)}</p>
+      <h3>${t.hypothesis}</h3>
+      <p>${esc(hypothesisText)}</p>
     </div>
     <div class="dd-analysis">
       <h3>${t.compounding}</h3>
@@ -293,11 +370,13 @@ function deepDive2(cat, idx) {
     </div>
 
     ${actionsBlock(cat)}
+    ${marketerActionsBlock(cat)}
   </section>`;
 }
 
 // --- Deep Dive #3: Before/After Layout ---
 function deepDive3(cat, idx) {
+  const hypothesisText = getCatHypothesis(cat);
   return `
   <section class="section deepdive">
     <div class="dd-label">${t.issueNum(idx + 1)}</div>
@@ -307,7 +386,7 @@ function deepDive3(cat, idx) {
     <div class="comparison">
       <div class="comp-col expect">
         <h4>${t.dd3Expect}</h4>
-        <p>${esc(cat.rootCause.split('—')[0].split('–')[0].trim())}</p>
+        <p>${esc(hypothesisText.split('\u2014')[0].split('\u2013')[0].trim())}</p>
       </div>
       <div class="comp-divider"></div>
       <div class="comp-col got">
@@ -318,8 +397,8 @@ function deepDive3(cat, idx) {
     </div>
 
     <div class="dd-analysis">
-      <h3>${t.rootCause}</h3>
-      <p>${esc(cat.rootCause)}</p>
+      <h3>${t.hypothesis}</h3>
+      <p>${esc(hypothesisText)}</p>
     </div>
     <div class="dd-analysis">
       <h3>${t.compounding}</h3>
@@ -327,6 +406,7 @@ function deepDive3(cat, idx) {
     </div>
 
     ${actionsBlock(cat)}
+    ${marketerActionsBlock(cat)}
   </section>`;
 }
 
@@ -351,6 +431,130 @@ function actionsBlock(cat) {
     <div class="dd-test">
       <strong>${t.testThis}:</strong> ${esc(cat.testHypothesis)}
     </div>` : ''}`;
+}
+
+// --- Compounding Map ---
+function compoundingMapHTML() {
+  if (top3.length < 2) return '';
+
+  // Extract compounding relationships from each top-3 category
+  const connections = [];
+  top3.forEach((cat, i) => {
+    if (!cat.compounding) return;
+    const text = cat.compounding;
+    // Try to find references to other top-3 categories
+    top3.forEach((other, j) => {
+      if (i === j) return;
+      if (text.toLowerCase().includes(other.name.toLowerCase()) ||
+          text.toLowerCase().includes(other.name.toLowerCase().split(' ')[0])) {
+        // Extract a short description from the compounding text
+        const sentences = text.split(/\.\s+/);
+        const relevantSentence = sentences.find(s =>
+          s.toLowerCase().includes(other.name.toLowerCase()) ||
+          s.toLowerCase().includes(other.name.toLowerCase().split(' ')[0])
+        );
+        let label = relevantSentence
+          ? relevantSentence.replace(/^[^a-zA-Z]*/, '').trim()
+          : text.split('.')[0].trim();
+        // Truncate to reasonable length
+        if (label.length > 80) label = label.substring(0, 77) + '...';
+        connections.push({ from: i, to: j, label });
+      }
+    });
+  });
+
+  // If no connections detected, generate generic ones from compounding text
+  if (connections.length === 0 && top3.length >= 2) {
+    top3.forEach((cat, i) => {
+      if (!cat.compounding) return;
+      const nextIdx = (i + 1) % top3.length;
+      let label = cat.compounding.split('.')[0].trim();
+      if (label.length > 80) label = label.substring(0, 77) + '...';
+      connections.push({ from: i, to: nextIdx, label });
+    });
+  }
+
+  if (connections.length === 0) return '';
+
+  const nodeColors = ['var(--accent)', '#D97706', '#7C3AED'];
+
+  return `
+  <section class="section compounding-map">
+    <h2 class="section-title">${t.compoundingMapTitle}</h2>
+    <div class="compound-viz">
+      <div class="compound-nodes">
+        ${top3.map((cat, i) => `
+        <div class="compound-node" style="--node-color: ${nodeColors[i]}">
+          <div class="compound-node-dot" style="background: ${nodeColors[i]}"></div>
+          <span class="compound-node-name">${esc(cat.name)}</span>
+        </div>`).join('')}
+      </div>
+      <div class="compound-edges">
+        ${connections.map(c => `
+        <div class="compound-edge">
+          <span class="compound-edge-from" style="color: ${nodeColors[c.from]}">${esc(top3[c.from].name)}</span>
+          <span class="compound-arrow">&rarr;</span>
+          <span class="compound-edge-to" style="color: ${nodeColors[c.to]}">${esc(top3[c.to].name)}</span>
+          <p class="compound-edge-label">${esc(c.label)}</p>
+        </div>`).join('')}
+      </div>
+    </div>
+  </section>`;
+}
+
+// --- Monthly Trend Chart ---
+function monthlyTrendHTML() {
+  let trendData = analysis.monthlyTrend;
+
+  // Auto-calculate from reviews if available and no monthlyTrend
+  if (!trendData && analysis.reviews && Array.isArray(analysis.reviews)) {
+    const monthMap = {};
+    analysis.reviews.forEach(r => {
+      if (r.isChurnSignal || r.subscriptionRelated) {
+        const d = new Date(r.date || r.createdAt);
+        if (!isNaN(d.getTime())) {
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          monthMap[key] = (monthMap[key] || 0) + 1;
+        }
+      }
+    });
+    const keys = Object.keys(monthMap).sort();
+    if (keys.length > 1) {
+      trendData = keys.map(k => ({ month: k, count: monthMap[k] }));
+    }
+  }
+
+  if (!trendData || !Array.isArray(trendData) || trendData.length === 0) return '';
+
+  const maxCount = Math.max(...trendData.map(d => d.count));
+  const barHeight = (count) => Math.max(4, Math.round((count / maxCount) * 120));
+
+  return `
+  <section class="section trend-section">
+    <h2 class="section-title">${t.trendTitle}</h2>
+    <div class="trend-chart">
+      ${trendData.map(d => `
+      <div class="trend-bar-col">
+        <div class="trend-bar-value">${d.count}</div>
+        <div class="trend-bar" style="height:${barHeight(d.count)}px"></div>
+        <div class="trend-bar-label">${esc(d.month)}</div>
+      </div>`).join('')}
+    </div>
+  </section>`;
+}
+
+// --- Limitations Section ---
+function limitationsHTML() {
+  return `
+  <section class="section limitations">
+    <h2>${t.limitationsTitle}</h2>
+    <p>${t.limitationsIntro}</p>
+    <ul>
+      ${t.limitationsItems.map(item => `
+      <li><strong>${item.bold}</strong> — ${item.detail}</li>`).join('')}
+    </ul>
+    <p>${t.limitationsOutro}</p>
+  </section>`;
 }
 
 // --- Experiments ---
@@ -422,24 +626,22 @@ function experimentsHTML() {
 
 // --- CTA ---
 function ctaHTML() {
-  const top1Name = top3[0]?.name || '';
-  const waitlistBlock = waitlistUrl ? `
+  const waitlistBlock = waitlistEnabled ? `
     <div class="waitlist-box">
       <div class="waitlist-label">${t.waitlistTitle}</div>
       <p>${t.waitlistLine1}</p>
       <p>${t.waitlistLine2}</p>
       <p class="waitlist-fine">${t.waitlistLine3}</p>
-      <a href="${esc(waitlistUrl)}" target="_blank" class="waitlist-btn">${t.waitlistBtn} &rarr;</a>
-    </div>` : `<a href="https://airbridge.io" target="_blank" class="cta-link">${t.ctaLink} &rarr;</a>`;
+      <a href="https://airbridge.io" target="_blank" class="waitlist-btn">${t.waitlistBtn} &rarr;</a>
+    </div>` : '';
 
   return `
   <section class="section cta-section">
     <h2 class="cta-title">${t.ctaTitle}</h2>
-    <p>${t.ctaLine1(top1Name)}</p>
+    <p>${t.ctaLine1}</p>
     <p>${t.ctaLine2}</p>
-    <p>${t.ctaLine3}</p>
-    <p>${t.ctaLine4}</p>
-    <p class="cta-closer">${t.ctaLine5('Airbridge Core Plan')}</p>
+    <p class="cta-closer">${t.ctaLine3}</p>
+    <a href="https://airbridge.io" target="_blank" class="cta-link">${t.ctaLink} &rarr;</a>
     ${waitlistBlock}
   </section>`;
 }
@@ -567,7 +769,7 @@ const html = `<!DOCTYPE html>
     transition: transform 200ms;
   }
   .methodology[open] summary::before {
-    content: '−';
+    content: '\u2212';
   }
   .methodology-body {
     padding: 0 20px 20px;
@@ -637,6 +839,12 @@ const html = `<!DOCTYPE html>
     font-size: 13px;
     color: var(--text-3);
     margin-bottom: 32px;
+  }
+  .severity-note {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 16px;
+    font-style: italic;
   }
   .bar-row {
     cursor: pointer;
@@ -875,6 +1083,159 @@ const html = `<!DOCTYPE html>
   }
   .dd-test strong { color: var(--accent); }
 
+  /* ---- Marketer Actions ---- */
+  .dd-marketer-actions {
+    margin-top: 28px;
+    padding-left: 16px;
+    border-left: 3px solid #D97706;
+  }
+  .dd-marketer-actions h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #D97706;
+    margin-bottom: 12px;
+  }
+  .marketer-action-row {
+    padding: 8px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+    border-bottom: 1px solid #EEECEB;
+  }
+  .marketer-action-row:last-child { border-bottom: none; }
+
+  /* ---- Compounding Map ---- */
+  .compounding-map { margin-top: 100px; }
+  .compound-viz {
+    margin-top: 24px;
+  }
+  .compound-nodes {
+    display: flex;
+    justify-content: space-around;
+    gap: 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .compound-node {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .compound-node-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .compound-edges {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .compound-edge {
+    padding: 14px 20px;
+    background: #F5F5F4;
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .compound-edge-from, .compound-edge-to {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .compound-arrow {
+    font-size: 16px;
+    color: var(--text-3);
+  }
+  .compound-edge-label {
+    width: 100%;
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-top: 4px;
+  }
+
+  /* ---- Monthly Trend ---- */
+  .trend-section { margin-top: 100px; }
+  .trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding: 20px 0;
+    min-height: 180px;
+  }
+  .trend-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .trend-bar-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-2);
+  }
+  .trend-bar {
+    width: 100%;
+    max-width: 48px;
+    background: var(--accent);
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+  }
+  .trend-bar-label {
+    font-size: 11px;
+    color: var(--text-3);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* ---- Limitations ---- */
+  .limitations {
+    border-left: 3px solid var(--border);
+    padding-left: 24px !important;
+  }
+  .limitations h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .limitations p {
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text-2);
+    margin-bottom: 16px;
+  }
+  .limitations ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 16px;
+  }
+  .limitations li {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-2);
+    padding: 8px 0;
+    border-bottom: 1px solid #EEECEB;
+  }
+  .limitations li:last-child { border-bottom: none; }
+  .limitations li strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
   /* ---- Experiments (detailed cards) ---- */
   .exp-cards { display: flex; flex-direction: column; gap: 24px; }
   .exp-card {
@@ -1069,6 +1430,8 @@ const html = `<!DOCTYPE html>
     .journey-line { width: 20px; }
     .exp-grid { grid-template-columns: 1fr; }
     .section + .section { margin-top: 72px; }
+    .compound-nodes { flex-direction: column; }
+    .trend-chart { gap: 6px; }
   }
 
   @media print {
@@ -1100,7 +1463,11 @@ const html = `<!DOCTYPE html>
     <p class="lead">${t.patternLine(sorted.length)}</p>
     <p class="hint">${t.patternHint}</p>
     ${barChart()}
+    <p class="severity-note">${t.severityNote}</p>
   </div>
+
+  <!-- Monthly Trend -->
+  ${monthlyTrendHTML()}
 
   <!-- Deep Dive Intro -->
   <div class="section" style="margin-top:100px">
@@ -1112,8 +1479,14 @@ const html = `<!DOCTYPE html>
   ${top3[1] ? deepDive2(top3[1], 1) : ''}
   ${top3[2] ? deepDive3(top3[2], 2) : ''}
 
+  <!-- Compounding Map -->
+  ${compoundingMapHTML()}
+
   <!-- Experiments -->
   ${experimentsHTML()}
+
+  <!-- Limitations -->
+  ${limitationsHTML()}
 
   <!-- CTA -->
   ${ctaHTML()}
