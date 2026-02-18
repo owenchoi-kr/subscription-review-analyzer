@@ -156,13 +156,93 @@ async function fetchReviews(playId) {
     console.log('\n  Skipping iOS (no --ios flag provided)');
   }
 
+  // Fallback: if fewer than 30 reviews with time filter, retry without it
+  const MIN_REVIEWS = 30;
+  if (cutoffDate && allReviews.length < MIN_REVIEWS) {
+    console.log(`\n⚠ Only ${allReviews.length} reviews in last ${months} months (minimum: ${MIN_REVIEWS}).`);
+    console.log(`  Expanding to all-time reviews...`);
+
+    allReviews.length = 0; // clear
+
+    if (platform === 'both' || platform === 'android') {
+      try {
+        let nextToken = undefined;
+        const maxPages = Math.ceil(num / 150);
+        for (let page = 0; page < maxPages; page++) {
+          const androidCount = allReviews.filter(r => r.platform === 'android').length;
+          if (androidCount >= num) break;
+          const result = await gplay.reviews({
+            appId: playId,
+            num: Math.min(150, num - androidCount),
+            sort: gplay.sort.NEWEST,
+            paginate: true,
+            nextPaginationToken: nextToken
+          });
+          const batch = result.data
+            .filter(r => r.score <= maxRating)
+            .map(r => ({
+              platform: 'android',
+              score: r.score,
+              title: '',
+              text: r.text || '',
+              date: r.date,
+              thumbsUp: r.thumbsUp || 0
+            }));
+          allReviews.push(...batch);
+          nextToken = result.nextPaginationToken;
+          if (!nextToken) break;
+        }
+        console.log(`  -> ${allReviews.filter(r => r.platform === 'android').length} Android reviews (all-time)`);
+      } catch (err) {
+        console.error(`  Android error: ${err.message}`);
+      }
+    }
+
+    if ((platform === 'both' || platform === 'ios') && iosId) {
+      try {
+        const iosIdNum = parseInt(iosId, 10);
+        const isNumericId = !isNaN(iosIdNum);
+        const query = isNumericId ? { id: iosIdNum } : { appId: iosId };
+        let iosReviews = [];
+        const maxPages = Math.ceil(num / 50);
+        for (let page = 1; page <= maxPages; page++) {
+          const results = await store.reviews({
+            ...query,
+            country,
+            sort: store.sort.RECENT,
+            page
+          });
+          if (!results || results.length === 0) break;
+          iosReviews.push(...results);
+          if (iosReviews.length >= num) break;
+        }
+        const filtered = iosReviews
+          .filter(r => r.score <= maxRating)
+          .map(r => ({
+            platform: 'ios',
+            score: r.score,
+            title: r.title || '',
+            text: r.text || '',
+            date: r.updated || r.date || '',
+            thumbsUp: 0
+          }));
+        allReviews.push(...filtered);
+        console.log(`  -> ${filtered.length} iOS reviews (all-time)`);
+      } catch (err) {
+        console.error(`  iOS error: ${err.message}`);
+      }
+    }
+
+    console.log(`  ✓ Expanded to ${allReviews.length} total reviews.`);
+  }
+
   const outputFile = getFlag('--output', `reviews_${playId.split('.').pop()}.json`);
   const outputPath = path.resolve(outputFile);
 
   const output = {
     appId: { play: playId, ios: iosId },
     fetchDate: new Date().toISOString(),
-    filters: { maxRating, platform, country, requested: num },
+    filters: { maxRating, platform, country, requested: num, months: months || 'all' },
     totalFetched: allReviews.length,
     reviews: allReviews
   };
