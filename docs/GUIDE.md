@@ -33,7 +33,7 @@ npm install
 
 ### 3. Skill registration
 
-The skill file is already at `.claude/commands/diagnosing-subscription-churn.md`.
+The skill file is already at `.claude/skills/diagnosing-subscription-churn/SKILL.md`.
 Just open Claude Code inside the `subscription-review-analyzer` directory — it picks up the skill automatically.
 
 ---
