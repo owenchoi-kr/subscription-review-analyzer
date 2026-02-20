@@ -51,7 +51,7 @@ async function fetchReviews(playId) {
   const iosId = getFlag('--ios', null);
   const num = parseInt(getFlag('--num', '500'), 10);
   const maxRating = parseInt(getFlag('--rating', '5'), 10);
-  const months = parseInt(getFlag('--months', '0'), 10);
+  const months = parseInt(getFlag('--months', '6'), 10);
   const platform = getFlag('--platform', 'both');
   const country = getFlag('--country', 'us');
 
@@ -159,8 +159,15 @@ async function fetchReviews(playId) {
   // Fallback: if fewer than 30 reviews with time filter, retry without it
   const MIN_REVIEWS = 30;
   if (cutoffDate && allReviews.length < MIN_REVIEWS) {
-    console.log(`\n⚠ Only ${allReviews.length} reviews in last ${months} months (minimum: ${MIN_REVIEWS}).`);
-    console.log(`  Expanding to all-time reviews...`);
+    const recentCount = allReviews.length;
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`⚠  NOTICE: Only ${recentCount} reviews found in the last ${months} months.`);
+    console.log(`   Minimum ${MIN_REVIEWS} reviews needed for meaningful analysis.`);
+    console.log(`   → Expanding to include ALL-TIME reviews to reach sufficient data.`);
+    console.log(`${'='.repeat(60)}`);
+    console.log(`\n   ⓘ  The analysis will include older reviews beyond the ${months}-month window.`);
+    console.log(`       Keep in mind: older reviews may reflect issues that have since been fixed,`);
+    console.log(`       or praise features that no longer exist. Weight recent patterns more heavily.\n`);
 
     allReviews.length = 0; // clear
 
@@ -233,17 +240,36 @@ async function fetchReviews(playId) {
       }
     }
 
-    console.log(`  ✓ Expanded to ${allReviews.length} total reviews.`);
+    console.log(`\n  ✓ Expanded to ${allReviews.length} total reviews (${recentCount} recent + ${allReviews.length - recentCount} older).`);
+    console.log(`  ⓘ  Recent reviews (last ${months}mo): ${recentCount} — Older reviews: ${allReviews.length - recentCount}`);
   }
 
   const outputFile = getFlag('--output', `reviews_${playId.split('.').pop()}.json`);
   const outputPath = path.resolve(outputFile);
 
+  // Detect if fallback was used
+  const usedFallback = cutoffDate && allReviews.some(r => {
+    const d = new Date(r.date);
+    return d < cutoffDate;
+  });
+  const recentReviewCount = cutoffDate
+    ? allReviews.filter(r => new Date(r.date) >= cutoffDate).length
+    : allReviews.length;
+
   const output = {
     appId: { play: playId, ios: iosId },
     fetchDate: new Date().toISOString(),
-    filters: { maxRating, platform, country, requested: num, months: months || 'all' },
+    filters: { maxRating, platform, country, requested: num, months: months || 6 },
     totalFetched: allReviews.length,
+    dateRange: {
+      requestedMonths: months || 6,
+      recentReviews: recentReviewCount,
+      olderReviews: allReviews.length - recentReviewCount,
+      expandedToAllTime: usedFallback || false,
+      note: usedFallback
+        ? `Only ${recentReviewCount} reviews in the last ${months || 6} months. Expanded to all-time (${allReviews.length} total). Older reviews may reflect outdated app state.`
+        : `All ${allReviews.length} reviews are within the last ${months || 6} months.`
+    },
     reviews: allReviews
   };
 
@@ -262,7 +288,7 @@ Options:
   --ios <iosId>        iOS app ID (numeric or bundle ID)
   --num <number>       Reviews per platform (default: 500)
   --rating <max>       Max star rating to include (default: 5 = all)
-  --months <n>         Only include reviews from the last N months (default: 0 = all)
+  --months <n>         Only include reviews from the last N months (default: 6)
   --platform <p>       android | ios | both (default: both)
   --country <code>     Country code (default: us)
   --output <file>      Output filename (default: reviews_<appname>.json)

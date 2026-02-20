@@ -24,10 +24,11 @@ Before starting, clarify what the user needs via multiple-choice. Skip questions
 - b) Fetch automatically (give app name)
 - c) CSV/JSON file
 
-**Q3. Competitor comparison?**
-- a) Yes — compare with [competitor name]
-- b) No — just one app
-- c) Suggest a relevant competitor
+**Q3. Who is the main competitor?** *(REQUIRED)*
+- a) [User provides competitor name]
+- b) I'm not sure — suggest one for me
+
+Competitor analysis is **mandatory**, not optional. Every diagnosis includes a competitor comparison to surface buying points the competitor's users love but the target app lacks. If the user says "no competitor," push back: explain that competitor reviews are the richest source of unmet needs and buying triggers. If they truly can't name one, research and suggest the most relevant competitor yourself.
 
 **Q4. Subscription model?**
 - a) Free trial → Paid
@@ -39,25 +40,28 @@ If the user provides both app names (e.g., "analyze Calm vs Headspace"), skip al
 
 ---
 
-## Step 1: Fetch Reviews
+## Step 1: Fetch Reviews (Target App + Competitor)
 
-Fetch ALL reviews from the last 6 months. More data = better patterns.
+Fetch reviews from the last 6 months for **both the target app and the competitor**. Competitor fetch is mandatory — it powers the buying point analysis in Step 2.
 
 ```bash
-# Search for app IDs
-node scripts/fetch_reviews.js search "app name"
+# Search for app IDs (run for both target and competitor)
+node scripts/fetch_reviews.js search "target app name"
+node scripts/fetch_reviews.js search "competitor app name"
 
-# Fetch reviews (single app)
-node scripts/fetch_reviews.js fetch <playStoreId> --ios <iosId> --months 6
-
-# Fetch reviews (competitor comparison)
-node scripts/fetch_reviews.js fetch <app1_playId> --ios <app1_iosId> --months 6
-node scripts/fetch_reviews.js fetch <app2_playId> --ios <app2_iosId> --months 6
+# Fetch reviews — ALWAYS fetch both
+node scripts/fetch_reviews.js fetch <target_playId> --ios <target_iosId> --months 6
+node scripts/fetch_reviews.js fetch <competitor_playId> --ios <competitor_iosId> --months 6
 ```
 
 Flags: `--months 6` (default), `--num 500`, `--rating 5` (all), `--platform android|ios|both`, `--country us`
 
 Do NOT filter by rating. Fetch all 1-5 stars. Positive reviews contain valuable signals ("I love this BUT...").
+
+**Fallback behavior:** If fewer than 30 reviews exist within the requested time window, the script automatically expands to all-time reviews and displays a clear warning. When this happens:
+- The output JSON includes a `dateRange` object showing exactly how many reviews are recent vs older
+- **Tell the user**: "Only X reviews were found in the last 6 months. I've included older reviews to have enough data for analysis, but keep in mind older reviews may reflect issues that have already been fixed."
+- Weight recent reviews more heavily during classification — patterns from the last 6 months matter more than patterns from 2+ years ago
 
 The script auto-installs `google-play-scraper` and `app-store-scraper` on first run.
 
@@ -100,19 +104,55 @@ Flag reviews where ads/marketing don't match reality. Patterns: "ad said," "adve
 ### Lens 7: Value Message Extraction
 From POSITIVE reviews (4-5 stars), extract what value users mention as worth paying for. Patterns: "worth it because," "best part is," "paid and don't regret"
 
-### Lens 8: Competitive Positioning Gaps
-Extract competitor mentions and feature/experience gaps. Patterns: "[competitor] has," "switched from," "better/worse than"
+### Lens 8: Competitor Buying Points (from competitor reviews)
+Analyze the **competitor's** reviews (fetched in Step 1) to extract buying points — reasons users chose and stayed with the competitor. This is NOT about what users of the target app say about competitors; it's direct analysis of competitor user love:
+- **From competitor's 4-5★ reviews**: What do their happy users rave about? What made them pay?
+- **From competitor's 1-2★ reviews**: What do their unhappy users wish was different? These are opportunities for the target app.
+- **Buying point categories**: Price/value, unique features, UX quality, content quality, integrations, brand trust, community
+- **Output**: Populate `competitorBuyingPoints` in `marketerLenses` with specific quotes and themes
 
 ### Lens 9: Subscription Conversion Triggers
 From reviews mentioning upgrading, identify what triggered conversion. Patterns: "decided to pay," "upgraded because," "worth the subscription"
+
+### Lens 10: Rating Extremes Analysis (1-2★ vs 4-5★ Commonalities)
+App store reviews are inherently bimodal — users who love it or hate it. Analyze the commonalities within each extreme:
+
+**Low ratings (1-2★) — What do haters have in common?**
+- Common user profile (new user? long-time user? specific use case?)
+- Shared pain points (top 3 themes with quotes)
+- Journey stage when they left the review
+- Platform skew (mostly iOS or Android?)
+
+**High ratings (4-5★) — What do lovers have in common?**
+- Common user profile (power user? specific demographic? use case?)
+- Shared delight points (top 3 themes with quotes)
+- Features most frequently praised
+- What triggered them to leave a positive review (milestone? specific result?)
+
+**The gap**: Identify the biggest disconnects between what lovers praise and what haters complain about. This reveals whether the product works great for a specific segment but fails for others — a targeting problem, not a product problem.
+
+**Output**: Populate `ratingExtremes` in the analysis JSON.
+
+### Lens 11: Platform Comparison (iOS vs Android)
+Classify every review by platform and analyze behavioral differences:
+- **Per category**: Count churn signals separately for iOS and Android (`platformSplit`)
+- **Overall**: Compare churn signal rates, avg ratings, and top issues per platform
+- **Behavioral patterns**: iOS and Android users often have different expectations, price sensitivity, and pain points. Note differences such as:
+  - Billing/refund friction (Google Play vs App Store policies)
+  - Payment sensitivity (Android users tend to be more price-sensitive)
+  - Technical issues (platform-specific bugs, OS version fragmentation)
+  - Feature expectations (e.g., Apple Watch integration only relevant to iOS)
+- **Output**: Populate `platformBreakdown` at the top level and `platformSplit` in each category
 
 ---
 
 ## Step 3: Aggregate and Prioritize
 
-For each churn signal category: **Count**, **Weighted score** (count × severity), **Average rating**, **Dominant journey stage** and **user type**, **Trend**, **Compounding pairs**.
+For each churn signal category: **Count**, **Weighted score** (count × severity), **Average rating**, **Dominant journey stage** and **user type**, **Trend**, **Compounding pairs**, **Platform split** (iOS vs Android).
 
 Sort by weighted score. Focus on **top 3 only.**
+
+**Platform-level aggregation**: Also calculate overall stats per platform — total reviews, churn signal count, churn signal rate, avg rating, and identify the #1 issue per platform. Write a 1-2 sentence insight summarizing the key behavioral difference (e.g., "Android users complain about billing 3x more than iOS users, likely due to Google Play's more complex refund process").
 
 > **Note on severity weights**: Default weights are based on industry benchmarks from RevenueCat's State of Subscription Apps reports. These are starting points — actual severity varies by app. The weighted score surfaces likely priorities, not definitive rankings.
 
