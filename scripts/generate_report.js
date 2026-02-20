@@ -788,7 +788,7 @@ function ctaHTML() {
       <p>${t.waitlistLine1}</p>
       <p>${t.waitlistLine2}</p>
       <p class="waitlist-fine">${t.waitlistLine3}</p>
-      <a href="https://airbridge.io" target="_blank" class="waitlist-btn">${t.waitlistBtn} &rarr;</a>
+      <a href="https://core-landing-liart.vercel.app/" target="_blank" class="waitlist-btn">${t.waitlistBtn} <span class="btn-arrow">&rarr;</span></a>
     </div>` : '';
 
   return `
@@ -797,18 +797,18 @@ function ctaHTML() {
     <p>${t.ctaLine1}</p>
     <p>${t.ctaLine2}</p>
     <p class="cta-closer">${t.ctaLine3}</p>
-    <a href="https://airbridge.io" target="_blank" class="cta-link">${t.ctaLink} &rarr;</a>
+    <a href="https://core-landing-liart.vercel.app/" target="_blank" class="cta-link">${t.ctaLink} &rarr;</a>
     ${waitlistBlock}
   </section>`;
 }
 
 // --- LinkedIn ---
 function linkedinHTML() {
-  if (!linkedinUrl) return '';
+  const url = linkedinUrl || 'https://www.linkedin.com/in/owenchoi-kr/';
   return `
   <section class="section connect-section">
     <p>${t.linkedinLine}</p>
-    <a href="${esc(linkedinUrl)}" target="_blank" class="linkedin-link">${t.linkedinCta} &rarr;</a>
+    <a href="${esc(url)}" target="_blank" class="linkedin-link">${t.linkedinCta} &rarr;</a>
   </section>`;
 }
 
@@ -1695,16 +1695,28 @@ const html = `<!DOCTYPE html>
   }
   .waitlist-btn {
     display: inline-block;
-    padding: 12px 32px;
-    background: var(--text);
-    color: var(--bg);
-    font-size: 15px;
-    font-weight: 600;
+    padding: 16px 44px;
+    background: linear-gradient(135deg, var(--accent) 0%, #B91C1C 100%);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
     text-decoration: none;
-    border-radius: 6px;
-    transition: opacity 150ms;
+    border-radius: 50px;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+    transition: transform 200ms, box-shadow 200ms;
+    letter-spacing: 0.3px;
   }
-  .waitlist-btn:hover { opacity: 0.85; }
+  .waitlist-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  }
+  .waitlist-btn .btn-arrow {
+    display: inline-block;
+    transition: transform 200ms;
+  }
+  .waitlist-btn:hover .btn-arrow {
+    transform: translateX(4px);
+  }
 
   /* ---- Connect (LinkedIn) ---- */
   .connect-section {
