@@ -597,8 +597,7 @@ function ratingExtremesHTML() {
     <div class="re-grid">
       <div class="re-col re-haters">
         <div class="re-col-header">
-          <span class="re-col-icon">👎</span>
-          <span class="re-col-title">${lang === 'ko' ? '1-2점 리뷰' : '1-2★ Reviews'}</span>
+          <span class="re-col-title">${lang === 'ko' ? '1-2점 리뷰' : '1-2\u2605 Reviews'}</span>
           <span class="re-col-count">${low.count || 0}${lang === 'ko' ? '건' : ''}</span>
         </div>
         ${low.commonProfile ? `<p class="re-profile"><strong>${lang === 'ko' ? '공통 프로필' : 'Common profile'}:</strong> ${esc(low.commonProfile)}</p>` : ''}
@@ -608,8 +607,7 @@ function ratingExtremesHTML() {
       <div class="re-divider"></div>
       <div class="re-col re-lovers">
         <div class="re-col-header">
-          <span class="re-col-icon">👍</span>
-          <span class="re-col-title">${lang === 'ko' ? '4-5점 리뷰' : '4-5★ Reviews'}</span>
+          <span class="re-col-title">${lang === 'ko' ? '4-5점 리뷰' : '4-5\u2605 Reviews'}</span>
           <span class="re-col-count">${high.count || 0}${lang === 'ko' ? '건' : ''}</span>
         </div>
         ${high.commonProfile ? `<p class="re-profile"><strong>${lang === 'ko' ? '공통 프로필' : 'Common profile'}:</strong> ${esc(high.commonProfile)}</p>` : ''}
@@ -642,18 +640,19 @@ function competitorBuyingPointsHTML() {
 
     <div class="cbp-grid">
       <div class="cbp-col">
-        <h3 class="cbp-col-title love">❤️ ${lang === 'ko' ? '그들이 사랑하는 것' : 'What they love'}</h3>
+        <h3 class="cbp-col-title love">${lang === 'ko' ? '그들이 사랑하는 것' : 'What they love'}</h3>
         ${quoteCards(cbp.theyLove, 'love')}
       </div>
+      <div class="cbp-divider"></div>
       <div class="cbp-col">
-        <h3 class="cbp-col-title hate">💔 ${lang === 'ko' ? '그들이 싫어하는 것' : 'What they hate'}</h3>
+        <h3 class="cbp-col-title hate">${lang === 'ko' ? '그들이 싫어하는 것' : 'What they hate'}</h3>
         ${quoteCards(cbp.theyHate, 'hate')}
       </div>
     </div>
 
     ${cbp.opportunities && cbp.opportunities.length > 0 ? `
     <div class="cbp-opportunities">
-      <h3>${lang === 'ko' ? '💡 기회 포인트' : '💡 Opportunities'}</h3>
+      <h3>${lang === 'ko' ? '기회 포인트' : 'Opportunities'}</h3>
       <ul>${cbp.opportunities.map(o => `<li>${esc(o)}</li>`).join('')}</ul>
     </div>` : ''}
   </section>`;
@@ -1016,7 +1015,7 @@ const html = `<!DOCTYPE html>
     padding: 16px 20px;
     background: #F5F5F4;
     border-radius: 8px;
-    border-left: 3px solid #7C3AED;
+    border-left: 3px solid var(--accent);
     font-size: 14px;
     line-height: 1.7;
     color: var(--text);
@@ -1326,12 +1325,15 @@ const html = `<!DOCTYPE html>
   .re-col-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
     margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
   }
-  .re-col-icon { font-size: 20px; }
-  .re-col-title { font-size: 16px; font-weight: 700; }
-  .re-col-count { font-size: 13px; color: var(--text-3); margin-left: auto; }
+  .re-haters .re-col-header { border-color: var(--accent); }
+  .re-lovers .re-col-header { border-color: #D97706; }
+  .re-col-title { font-size: 14px; font-weight: 700; }
+  .re-col-count { font-size: 13px; color: var(--text-3); }
   .re-profile, .re-features, .re-skew {
     font-size: 13px;
     color: var(--text-2);
@@ -1341,12 +1343,12 @@ const html = `<!DOCTYPE html>
   .re-skew { color: var(--accent); font-weight: 500; }
   .re-themes { display: flex; flex-direction: column; gap: 10px; }
   .re-theme {
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-radius: 8px;
     font-size: 13px;
   }
-  .re-haters .re-theme { background: #FEF2F2; }
-  .re-lovers .re-theme { background: #F0FDF4; }
+  .re-haters .re-theme { background: var(--accent-light); }
+  .re-lovers .re-theme { background: #F5F5F4; }
   .re-theme-header {
     display: flex;
     justify-content: space-between;
@@ -1365,9 +1367,9 @@ const html = `<!DOCTYPE html>
   .re-gap-insight {
     margin-top: 24px;
     padding: 16px 20px;
-    background: #FFFBEB;
+    background: #F5F5F4;
     border-radius: 8px;
-    border-left: 3px solid #D97706;
+    border-left: 3px solid var(--accent);
     font-size: 14px;
     line-height: 1.7;
     color: var(--text);
@@ -1377,10 +1379,11 @@ const html = `<!DOCTYPE html>
   .competitor-buying-points { margin-top: 100px; }
   .cbp-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 32px;
     margin-top: 24px;
   }
+  .cbp-divider { background: var(--border); }
   .cbp-col-title {
     font-size: 14px;
     font-weight: 700;
@@ -1388,7 +1391,7 @@ const html = `<!DOCTYPE html>
     padding-bottom: 8px;
     border-bottom: 2px solid var(--border);
   }
-  .cbp-col-title.love { border-color: #22C55E; }
+  .cbp-col-title.love { border-color: #D97706; }
   .cbp-col-title.hate { border-color: var(--accent); }
   .cbp-card {
     padding: 12px 16px;
@@ -1396,22 +1399,24 @@ const html = `<!DOCTYPE html>
     margin-bottom: 10px;
     font-size: 13px;
   }
-  .cbp-card.love { background: #F0FDF4; }
-  .cbp-card.hate { background: #FEF2F2; }
+  .cbp-card.love { background: #F5F5F4; }
+  .cbp-card.hate { background: var(--accent-light); }
   .cbp-theme { font-weight: 600; color: var(--text); margin-bottom: 4px; }
   .cbp-quote { font-style: italic; color: var(--text-2); line-height: 1.5; }
   .cbp-quote mark { background: var(--accent-light); color: var(--accent); font-style: normal; padding: 1px 3px; border-radius: 2px; }
   .cbp-opportunities {
     margin-top: 24px;
-    padding: 20px 24px;
-    background: #EFF6FF;
+    padding: 16px 20px;
+    background: #F5F5F4;
     border-radius: 8px;
-    border-left: 3px solid #3B82F6;
+    border-left: 3px solid #D97706;
   }
   .cbp-opportunities h3 {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #D97706;
     margin-bottom: 12px;
   }
   .cbp-opportunities ul {
@@ -1423,10 +1428,10 @@ const html = `<!DOCTYPE html>
     line-height: 1.6;
     color: var(--text);
     padding: 6px 0;
-    border-bottom: 1px solid #DBEAFE;
+    border-bottom: 1px solid #EEECEB;
   }
   .cbp-opportunities li:last-child { border-bottom: none; }
-  .cbp-opportunities li::before { content: '→ '; color: #3B82F6; font-weight: 600; }
+  .cbp-opportunities li::before { content: '\\2192  '; color: #D97706; font-weight: 600; }
 
   /* ---- Compounding Map ---- */
   .compounding-map { margin-top: 100px; }
@@ -1757,7 +1762,8 @@ const html = `<!DOCTYPE html>
     .re-grid { grid-template-columns: 1fr; gap: 24px; }
     .re-divider { display: none; }
     .re-lovers { border-top: 1px solid var(--border); padding-top: 20px; }
-    .cbp-grid { grid-template-columns: 1fr; }
+    .cbp-grid { grid-template-columns: 1fr; gap: 24px; }
+    .cbp-divider { display: none; }
   }
 
   @media print {
