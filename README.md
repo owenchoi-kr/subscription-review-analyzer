@@ -8,8 +8,8 @@
 [![Claude Code](https://img.shields.io/badge/built%20with-Claude%20Code-blueviolet)](https://claude.ai/claude-code)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-Feed it any app name. It fetches App Store & Play Store reviews,<br>
-classifies churn signals across 9 analytical lenses, and generates a shareable interactive report.
+Feed it any app name + a competitor. It fetches App Store & Play Store reviews,<br>
+classifies churn signals across 11 analytical lenses, and generates a shareable interactive report.
 
 [Get Started](#get-started) · [How It Works](#how-it-works) · [Use Cases](#use-cases) · [What's in the Report](#whats-in-the-report)
 
@@ -25,8 +25,9 @@ You don't need to be a developer. If you can install two things and type one sen
 >
 > - You're a **PM or marketer** at a subscription app and want to understand why users churn
 > - You're running **Paid UA** and wondering if your ad spend is actually driving subscriptions
-> - You want to **compare your app vs a competitor** — see where you're bleeding users and where they are
+> - You want to **compare your app vs a competitor** — see what they love about the competitor and where you can win
 > - You need a **shareable report** to align your team around the top 3 issues to fix
+> - You want **iOS vs Android** behavioral differences broken down separately
 
 <br>
 
@@ -68,16 +69,10 @@ claude
 Then just talk to it:
 
 ```
-"Analyze Calm app reviews and tell me why users are churning."
+"Analyze Calm app vs Headspace — why are users churning?"
 ```
 
-Or compare two apps head-to-head:
-
-```
-"Compare Duolingo vs Babbel — which one has worse churn and why?"
-```
-
-That's it. Claude handles the rest — fetching reviews, classifying signals, building the report.
+Claude will ask you for the competitor (if you didn't mention one), then handle the rest — fetching reviews for both apps, classifying signals, and building the report.
 
 <br>
 
@@ -85,44 +80,37 @@ That's it. Claude handles the rest — fetching reviews, classifying signals, bu
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   App Name   │───▶│    Fetch     │───▶│  Classify    │───▶│  Root Cause  │───▶│    HTML      │
-│              │    │   Reviews    │    │  9 Lenses    │    │  Analysis    │    │   Report     │
+│  App Name +  │───▶│    Fetch     │───▶│  Classify    │───▶│  Root Cause  │───▶│    HTML      │
+│  Competitor  │    │   Reviews    │    │  11 Lenses   │    │  Analysis    │    │   Report     │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                    App Store &         8 churn categories   Top 3 issues       Interactive,
-                    Play Store          + marketer lenses    A/B test designs   shareable
+                    Both apps,          8 churn categories   Top 3 issues       Interactive,
+                    App Store &         + marketer lenses    Platform split     shareable
+                    Play Store          + platform + rating  Competitor intel
 ```
 
 **Step by step:**
 
-1. **Scope** — Claude asks 4 quick multiple-choice questions (skip if you give enough context)
-2. **Fetch** — Pulls reviews from App Store & Google Play (last 6 months, all ratings)
-3. **Classify** — Every review scored across 9 analytical lenses
+1. **Scope** — Claude asks 4 quick questions: app name, goal, **competitor** (required), and focus area
+2. **Fetch** — Pulls reviews for both apps from App Store & Google Play (last 6 months by default, falls back to all-time if insufficient)
+3. **Classify** — Every review scored across 11 analytical lenses, split by iOS vs Android
 4. **Prioritize** — Ranked by weighted score (count x severity), top 3 only
-5. **Analyze** — Root causes, compounding effects, marketer actions, and experiment designs
+5. **Analyze** — Root causes, compounding effects, platform gaps, competitor buying points, and experiment designs
 6. **Report** — Interactive HTML report in [The Pudding](https://pudding.cool) editorial style
 7. **Share** — Open locally or deploy as a URL
 
 <br>
 
-## Two Modes
+## Always With a Competitor
 
-### Single App Analysis
-
-Diagnose one app's churn signals in depth.
+Every analysis requires a competitor. This isn't optional — it's what makes the report actionable.
 
 ```
-"Why is Headspace losing subscribers? Analyze their reviews."
+"Analyze Nightly sleep app vs Sleep Cycle — why are users churning?"
 ```
 
-### Competitor Comparison
+The report fetches reviews for **both** apps. Your app gets the full churn diagnosis. The competitor's reviews are mined for **buying points** — what their users love and hate — so you can spot positioning opportunities.
 
-Analyze two apps side by side — see where each bleeds users.
-
-```
-"Compare Calm vs Headspace churn patterns."
-```
-
-The report generates side-by-side comparison cards, overlaid bar charts, and per-category breakdowns for both apps.
+> **Why mandatory?** Without a competitor baseline, churn signals are just complaints. With one, they become positioning gaps you can exploit.
 
 <br>
 
@@ -137,11 +125,11 @@ The report generates side-by-side comparison cards, overlaid bar charts, and per
 
 <br>
 
-## 9 Analytical Lenses
+## 11 Analytical Lenses
 
-> Every review is scored across 9 lenses simultaneously. The first 8 classify churn signals; the rest extract growth and positioning intelligence.
+> Every review is scored across 11 lenses simultaneously. The first 8 classify churn signals; the rest extract growth, positioning, and platform intelligence.
 
-### Churn Signal Categories
+### Churn Signal Categories (Lenses 1–8)
 
 | | Category | Severity | Signal Examples |
 |:-:|:---------|:--------:|:----------------|
@@ -156,14 +144,22 @@ The report generates side-by-side comparison cards, overlaid bar charts, and per
 
 **Weighted score** = count x severity. High-severity issues with fewer mentions still surface above low-severity noise.
 
-### Marketer Lenses
+### Marketer & Positioning Lenses (Lens 9)
 
 | Lens | What it finds |
 |:-----|:-------------|
 | **Creative Over-Promise Detection** | Reviews where ads/marketing don't match reality — "ad said," "not what I expected" |
 | **Value Message Extraction** | What paying users say is worth it — from 4-5 star reviews |
-| **Competitive Positioning Gaps** | What competitors do better — "switched to," "[competitor] has" |
+| **Competitor Buying Points** | What competitor users love and hate — mined from the competitor's own reviews |
 | **Subscription Conversion Triggers** | What made users upgrade — "decided to pay because," "worth the subscription" |
+
+### Rating Extremes (Lens 10)
+
+Analyzes 1–2★ vs 4–5★ reviews separately to find what **lovers and haters** have in common. Surfaces patterns invisible in aggregate — e.g., "even 5-star reviewers complain about the alarm UX."
+
+### Platform Comparison (Lens 11)
+
+Splits every churn category by **iOS vs Android**. Reveals platform-specific behavioral gaps — e.g., "Android users report 50% churn signals vs 6.5% on iOS." Each bar in the report shows 🍎/🤖 counts.
 
 Plus: **Compounding Effect** analysis — how issues amplify each other (e.g., short trial + complex onboarding = users never reach the aha moment).
 
@@ -175,8 +171,11 @@ Plus: **Compounding Effect** analysis — how issues amplify each other (e.g., s
 |:--------|:--------------|
 | **Intro** | Total reviews analyzed, churn signal ratio — one big number with count-up animation |
 | **Dot Grid** | Every review as a dot. Churn signals highlighted in red. Visual scale of the problem. |
-| **Bar Chart** | 8 categories ranked by severity. Click any bar to expand actual review quotes. |
+| **Platform Comparison** | iOS vs Android side-by-side table — signal rates, top issues, and behavioral differences per platform |
+| **Bar Chart** | 8 categories ranked by severity. Each bar shows 🍎/🤖 platform split. Click to expand quotes. |
 | **Compounding Map** | How issues interact and amplify each other — the key differentiator |
+| **Rating Extremes** | Lovers (4–5★) vs Haters (1–2★) — what each group has in common and the gap insight |
+| **Competitor Buying Points** | What competitor users love, hate, and where you can win — mined from their reviews |
 | **Deep Dive x3** | Top 3 issues — each with a *different* layout (block quotes / timeline / before-after) |
 | **Monthly Trend** | Churn signal changes over time. See if problems are getting better or worse. |
 | **Experiments** | A/B test roadmap: hypothesis, metric, guardrail, duration, sample size |
@@ -240,7 +239,7 @@ node scripts/fetch_reviews.js fetch <playStoreId> --ios <iosId> --months 6
 | Flag | Default | Description |
 |:-----|:--------|:------------|
 | `--ios` | — | iOS App Store ID |
-| `--months` | 0 (all) | Only reviews from last N months |
+| `--months` | 6 | Only reviews from last N months (falls back to all-time if < 10 reviews) |
 | `--num` | 500 | Max reviews per platform |
 | `--rating` | 5 | Max star rating (5 = all) |
 | `--country` | us | Country code |
