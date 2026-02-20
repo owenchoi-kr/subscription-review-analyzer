@@ -239,7 +239,7 @@ node scripts/fetch_reviews.js fetch <playStoreId> --ios <iosId> --months 6
 | Flag | Default | Description |
 |:-----|:--------|:------------|
 | `--ios` | — | iOS App Store ID |
-| `--months` | 6 | Only reviews from last N months (falls back to all-time if < 10 reviews) |
+| `--months` | 6 | Only reviews from last N months (falls back to all-time if < 30 reviews) |
 | `--num` | 500 | Max reviews per platform |
 | `--rating` | 5 | Max star rating (5 = all) |
 | `--country` | us | Country code |
@@ -247,18 +247,13 @@ node scripts/fetch_reviews.js fetch <playStoreId> --ios <iosId> --months 6
 
 ### Generate report
 ```bash
-# Single app
 node scripts/generate_report.js analysis.json --output report.html
-
-# Competitor comparison
-node scripts/generate_report.js app1.json --compare app2.json --output report.html
 ```
 
 | Flag | Default | Description |
 |:-----|:--------|:------------|
 | `--output` | report.html | Output file path |
 | `--lang` | en | Language (en / ko) |
-| `--compare` | — | Second analysis JSON for competitor mode |
 | `--linkedin` | — | LinkedIn profile URL for footer |
 | `--waitlist` | — | Show early access CTA |
 
