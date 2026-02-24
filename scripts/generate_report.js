@@ -788,7 +788,7 @@ function ctaHTML() {
       <p>${t.waitlistLine1}</p>
       <p>${t.waitlistLine2}</p>
       <p class="waitlist-fine">${t.waitlistLine3}</p>
-      <a href="https://core-landing-liart.vercel.app/" target="_blank" class="waitlist-btn">${t.waitlistBtn} <span class="btn-arrow">&rarr;</span></a>
+      <a href="https://core-landing-topaz.vercel.app/" target="_blank" class="waitlist-btn">${t.waitlistBtn} <span class="btn-arrow">&rarr;</span></a>
     </div>` : '';
 
   return `
@@ -797,7 +797,7 @@ function ctaHTML() {
     <p>${t.ctaLine1}</p>
     <p>${t.ctaLine2}</p>
     <p class="cta-closer">${t.ctaLine3}</p>
-    <a href="https://core-landing-liart.vercel.app/" target="_blank" class="cta-link">${t.ctaLink} &rarr;</a>
+    <a href="https://core-landing-topaz.vercel.app/" target="_blank" class="cta-link">${t.ctaLink} &rarr;</a>
     ${waitlistBlock}
   </section>`;
 }
