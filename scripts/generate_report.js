@@ -114,11 +114,11 @@ const i18n = {
     ctaLine2: 'But you can\'t tell them apart without connecting acquisition channels to subscription outcomes.',
     ctaLine3: 'That\'s the question Airbridge Core Plan answers — is your paid UA actually driving subscriptions?',
     ctaLink: 'See how teams answer this',
-    waitlistTitle: 'Early access',
-    waitlistLine1: 'Core Plan is launching soon. Join the waitlist to start with <strong>90,000 Attributed Installs free</strong> over your first 3 months.',
-    waitlistLine2: 'The standard free tier covers 15,000 installs per year. This is <strong>6x that</strong>, concentrated into your first 90 days.',
-    waitlistLine3: 'Available to early access signups only.',
-    waitlistBtn: 'Join the waitlist',
+    waitlistTitle: 'Start free',
+    waitlistLine1: '<strong>15,000 Attributed Installs free</strong> for your first year.',
+    waitlistLine2: '',
+    waitlistLine3: '',
+    waitlistBtn: 'Get started free',
     linkedinLine: 'Want to discuss this analysis further?',
     linkedinCta: "Let's connect on LinkedIn",
     platformTitle: 'iOS vs Android',
@@ -181,11 +181,11 @@ const i18n = {
     ctaLine2: '하지만 유입 채널과 구독 결과를 연결하지 않으면 이 둘을 구분할 수 없습니다.',
     ctaLine3: '내 Paid UA가 실제로 구독을 만들고 있는가 — Airbridge Core Plan이 답하는 질문입니다.',
     ctaLink: '다른 팀들은 어떻게 답하고 있는지 보기',
-    waitlistTitle: '얼리 액세스',
-    waitlistLine1: 'Core Plan이 곧 런칭됩니다. 웨이팅리스트에 등록하면 첫 3개월간 <strong>90,000 Attributed Installs를 무료</strong>로 제공합니다.',
-    waitlistLine2: '일반 무료 티어는 연간 15,000건입니다. 이건 그 <strong>6배</strong>를 첫 90일에 집중 제공합니다.',
-    waitlistLine3: '얼리 액세스 등록자에게만 제공됩니다.',
-    waitlistBtn: '웨이팅리스트 등록하기',
+    waitlistTitle: '무료로 시작하기',
+    waitlistLine1: '첫 1년간 <strong>15,000 Attributed Installs 무료</strong>.',
+    waitlistLine2: '',
+    waitlistLine3: '',
+    waitlistBtn: '무료로 시작하기',
     linkedinLine: '이 분석에 대해 더 이야기하고 싶으신가요?',
     linkedinCta: 'LinkedIn에서 대화해요',
     platformTitle: 'iOS vs Android',
@@ -244,19 +244,25 @@ function dotGrid() {
 // --- Methodology (collapsible) ---
 function methodologyHTML() {
   const m = analysis.methodology;
+
+  // Default methodology content
+  const defaultSteps = [
+    `Scraped reviews from App Store (iOS) and Google Play Store (US market).`,
+    `Collected ${analysis.totalReviews} reviews across both platforms.`,
+    `Classified each review into 8 predefined churn signal categories.`,
+    `Assigned severity scores (1-5) to each category.`,
+    `Calculated weighted score = mentions x severity.`,
+    `Performed hypothesis analysis on the top 3 categories by score.`,
+  ];
+
   if (!m) {
-    // Generate default methodology
+    // No methodology field at all — use full default
     return `
     <details class="methodology">
       <summary>${t.methodologyTitle}</summary>
       <div class="methodology-body">
         <ol>
-          <li>Scraped reviews from App Store (iOS) and Google Play Store (US market).</li>
-          <li>Collected ${analysis.totalReviews} reviews across both platforms.</li>
-          <li>Classified each review into 8 predefined churn signal categories.</li>
-          <li>Assigned severity scores (1-5) to each category.</li>
-          <li>Calculated weighted score = mentions x severity.</li>
-          <li>Performed hypothesis analysis on the top 3 categories by score.</li>
+          ${defaultSteps.map(s => `<li>${s}</li>`).join('\n          ')}
         </ol>
       </div>
     </details>`;
@@ -270,14 +276,28 @@ function methodologyHTML() {
       }).join('\n        ')
     : '';
 
+  // Use m.description or fall back to m.detail (alternate format)
+  const desc = m.description || m.detail || '';
+
+  // If methodology exists but has no steps and no description, use default
+  if (!stepsHtml && !desc) {
+    return `
+    <details class="methodology">
+      <summary>${t.methodologyTitle}</summary>
+      <div class="methodology-body">
+        <ol>
+          ${defaultSteps.map(s => `<li>${s}</li>`).join('\n          ')}
+        </ol>
+      </div>
+    </details>`;
+  }
+
   return `
   <details class="methodology">
     <summary>${esc(m.title || t.methodologyTitle)}</summary>
     <div class="methodology-body">
-      ${m.description ? `<p>${esc(m.description)}</p>` : ''}
-      <ol>
-        ${stepsHtml}
-      </ol>
+      ${desc ? `<p>${esc(desc)}</p>` : ''}
+      ${stepsHtml ? `<ol>\n        ${stepsHtml}\n      </ol>` : ''}
     </div>
   </details>`;
 }
@@ -786,8 +806,8 @@ function ctaHTML() {
     <div class="waitlist-box">
       <div class="waitlist-label">${t.waitlistTitle}</div>
       <p>${t.waitlistLine1}</p>
-      <p>${t.waitlistLine2}</p>
-      <p class="waitlist-fine">${t.waitlistLine3}</p>
+      ${t.waitlistLine2 ? `<p>${t.waitlistLine2}</p>` : ''}
+      ${t.waitlistLine3 ? `<p class="waitlist-fine">${t.waitlistLine3}</p>` : ''}
       <a href="https://core-landing-topaz.vercel.app/" target="_blank" class="waitlist-btn">${t.waitlistBtn} <span class="btn-arrow">&rarr;</span></a>
     </div>` : '';
 
